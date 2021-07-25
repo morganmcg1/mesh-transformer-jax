@@ -25,10 +25,7 @@
   "model_dir": "mesh_jax_pile_6B_rotary",
 
   "train_set": "testing.train.index",
-  "val_set": {
-    "pile": "testing.val.index",
-    "owt": "openwebtext2_new_inputs.val.index"
-  },
+  "val_set": "testing.val.index",
   "eval_harness_tasks": [
   ],
   "val_batches": 50,
