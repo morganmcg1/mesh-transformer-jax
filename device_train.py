@@ -70,7 +70,7 @@ def save(network, step, bucket, path, mp, aux=None, keep_n=3, delete_old=True, w
         write_ckpt(network.state, f"gs://{bucket}/{path}/step_{step}/", shard_id)
         # Write artifacts file
         if wandb_artifacts is not None:
-            wandb.add_file(f"gs://{bucket}/{path}/step_{step}/{shard_id}")
+            wandb_artifacts[shard_id].add_file(f"gs://{bucket}/{path}/step_{step}/{shard_id}")
             wandb.log_artifact(wandb_artifacts[shard_id], aliases=[f'step={step}',f'shard={shard_id}'])
 
     print(f"Wrote checkpoint in {time.time() - start:.06}s")
