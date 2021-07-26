@@ -283,7 +283,7 @@ if __name__ == "__main__":
         wandb.init(project='mesh-transformer-jax', name=params["name"], config=params)
         # setup W&B Artifacts
         wandb_checkpoints = []
-        for s in cores_per_replica:
+        for s in range(cores_per_replica):
             art = wandb.Artifact(f'gpt-j-prosecraft_shard_{s}', type='model_shard')
             wandb_checkpoints.append(art)
 
