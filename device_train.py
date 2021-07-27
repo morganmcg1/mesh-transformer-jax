@@ -164,13 +164,14 @@ if __name__ == "__main__":
     end_lr = params["end_lr"]
     weight_decay = params["weight_decay"]
 
+    scheduler = util.gpt3_schedule(warmup_steps, anneal_steps, lr, end_lr)
     opt = optax.chain(
         optax.scale(1 / gradient_accumulation_steps),
         clip_by_global_norm(1),
         optax.scale_by_adam(),
         additive_weight_decay(weight_decay),
         optax.scale(-1),
-        optax.scale_by_schedule(util.gpt3_schedule(warmup_steps, anneal_steps, lr, end_lr))
+        optax.scale_by_schedule(scheduler)
     )
 
     params["optimizer"] = opt
@@ -322,4 +323,10 @@ if __name__ == "__main__":
             steps_per_sec = 1 / (time.time() - start)
             tokens_per_sec = tokens_per_step * steps_per_sec
 
-            wandb.log({'train/loss': loss, 'train/last_loss': last_loss, 'train/steps_per_sec': steps_per_sec, 'train/tokens_per_sec': tokens_per_sec}, step)
+            wandb.log({
+                'train/loss': loss, 
+                'train/last_loss': last_loss, 
+                'train/steps_per_sec': steps_per_sec, 
+                'train/tokens_per_sec': tokens_per_sec,
+                'train/learning_rate': float(scheduler(step))
+            }, step)
