@@ -12,6 +12,16 @@ from transformers import GPT2TokenizerFast
 from tqdm import tqdm
 
 
+def str2bool(v):
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
+
 def parse_args():
     parser = argparse.ArgumentParser(description="""
     Converts a text dataset into the training data format expected by the model.
@@ -62,7 +72,9 @@ def parse_args():
     misc_args.add_argument("--verbose",
                            default=False, action="store_true",
                            help="Prints extra information, such as the text removed by --min-unique-tokens")
-
+    parser.add_argument("--nested-dir", type=str2bool, nargs='?',
+                        const=True, default=False,
+                        help="If your files are nested as author->book->files")     
     args = parser.parse_args()
 
     if not args.input_dir.endswith("/"):
@@ -71,12 +83,31 @@ def parse_args():
     return args
 
 
-def get_files(input_dir):
-    filetypes = ["jsonl.zst", ".txt", ".xz", ".tar.gz"]
-    files = [list(Path(input_dir).glob(f"*{ft}")) for ft in filetypes]
-    # flatten list of list -> list and stringify Paths
-    return [str(item) for sublist in files for item in sublist]
+# def get_files(input_dir):
+#     filetypes = ["jsonl.zst", ".txt", ".xz", ".tar.gz"]
+#     files = [list(Path(input_dir).glob(f"*{ft}")) for ft in filetypes]
+#     # flatten list of list -> list and stringify Paths
+#     return [str(item) for sublist in files for item in sublist]
 
+
+def get_files(input_dir, filetypes=None):
+    # gets all files of <filetypes> in input_dir
+    if filetypes == None:
+        filetypes = ["jsonl.zst", ".txt", ".xz", ".tar.gz"]
+    
+    if not args.nested_dir:
+        files = [list(Path(input_dir).glob(f"*{ft}")) for ft in filetypes]
+    else:
+        authors_paths = [x for x in Path(args.input_dir).iterdir()]
+        files = []
+        for a in authors_paths:
+            files.append(list(Path(a).glob(f"**/*.txt")))
+    # flatten list of list -> list and stringify Paths
+    flattened_list = [str(item) for sublist in files for item in sublist]
+    if not flattened_list:
+        raise Exception(f"""did not find any files at this path {input_dir},\
+ please also ensure your files are in format {filetypes}""")
+    return flattened_list
 
 def wikitext_detokenizer(string):
     # contractions
@@ -288,3 +319,14 @@ if __name__ == "__main__":
     files = get_files(args.input_dir)
 
     results = create_tfrecords(files, args)
+
+    # write tfrecrods files names
+    tfrecords_list = list(Path(args.output_dir).glob(f"*.tfrecords"))
+    o_d = str(args.output_dir).split('/')[-1]
+    bucket_name = f'gs://prosecraft-storage'
+    with open(f'{args.output_dir}/tfrecords_paths.txt', 'w') as f:
+        for item in tfrecords_list:
+            nm = str(item).split('/')
+            f_path = f"{bucket_name}/{nm[-2]}/{nm[-1]}"
+            print(f_path)
+            f.write(f_path)
