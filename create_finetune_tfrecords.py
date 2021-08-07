@@ -277,38 +277,52 @@ def chunk_and_finalize(arrays, args, encoder):
 def create_tfrecords(files, args):
     GPT2TokenizerFast.max_model_input_sizes['gpt2'] = 1e20  # disables a misleading warning
     encoder = GPT2TokenizerFast.from_pretrained('gpt2')
+    
+    # shuffle the files list
+    random.shuffle(files)
 
     random.seed(args.seed)
+    dropped_tokens_len = 0
+    # Set the number of files to process at a time
+    n_files=1500
+    for i in range(0,len(files),n_files):
+        fs = files[i:i+n_files]
 
-    all_sequences_across_epochs = []
+        all_sequences_across_epochs = []
 
-    docs = read_files_to_tokenized_docs(files, args, encoder)
+        docs = read_files_to_tokenized_docs(fs, args, encoder)
 
-    full_seqs, trailing_data = chunk_and_finalize(docs, args, encoder)
-
-    all_sequences_across_epochs.extend(full_seqs)
-
-    # ep 2+
-    for ep_ix in range(1, args.n_repack_epochs):
-        # re-shuffle
-        if not args.preserve_data_order:
-            random.shuffle(docs)
-            full_seqs, trailing_data = chunk_and_finalize(docs, args, encoder)
-        else:
-            # if we're preserving data order, we can still "repack" by shifting everything
-            # with the trailing data of the last epoch at the beginning
-            seqs_with_prefix = [trailing_data] + full_seqs
-            full_seqs, trailing_data = chunk_and_finalize(seqs_with_prefix, args, encoder)
+        full_seqs, trailing_data = chunk_and_finalize(docs, args, encoder)
 
         all_sequences_across_epochs.extend(full_seqs)
 
-    # final
-    print(f"dropped {len(trailing_data)} tokens of trailing data")
+        # # ep 2+
+        # for ep_ix in range(1, args.n_repack_epochs):
+        #     # re-shuffle
+        #     if not args.preserve_data_order:
+        #         random.shuffle(docs)
+        #         full_seqs, trailing_data = chunk_and_finalize(docs, args, encoder)
+        #     else:
+        #         # if we're preserving data order, we can still "repack" by shifting everything
+        #         # with the trailing data of the last epoch at the beginning
+        #         seqs_with_prefix = [trailing_data] + full_seqs
+        #         full_seqs, trailing_data = chunk_and_finalize(seqs_with_prefix, args, encoder)
 
-    total_sequence_len = len(all_sequences_across_epochs)
+        #     all_sequences_across_epochs.extend(full_seqs)
 
-    fp = os.path.join(args.output_dir, f"{args.name}_{total_sequence_len}.tfrecords")
-    write_tfrecord(all_sequences_across_epochs, fp)
+        # final
+        dropped_l = len(trailing_data)
+        dropped_tokens_len+=dropped_l
+        print(f"dropped {dropped_l} tokens of trailing data")
+
+        total_sequence_len = len(all_sequences_across_epochs)
+
+        fp = os.path.join(args.output_dir, f"{args.name}_{i}_{total_sequence_len}.tfrecords")
+        write_tfrecord(all_sequences_across_epochs, fp)
+        print(f'files {i} to {i+n_files} converted to tfrecords')
+        i+=n_files
+
+    print(f'{dropped_tokens_len} tokens in total dropped')
 
 
 if __name__ == "__main__":
