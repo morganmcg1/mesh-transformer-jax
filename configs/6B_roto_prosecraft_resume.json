@@ -12,12 +12,12 @@
   "per_replica_batch": 1,
   "gradient_accumulation_steps": 32,
 
-  "warmup_steps": 1865,
-  "anneal_steps": 35438,
-  "lr": 2.5e-5,
-  "end_lr": 2.5e-6,
+  "warmup_steps": 200,
+  "anneal_steps": 18450,
+  "lr": 1e-5,
+  "end_lr": 1e-6,
   "weight_decay": 0.1,
-  "total_steps": 37303,
+  "total_steps": 18650,
 
   "tpu_size": 8,
 
@@ -29,10 +29,10 @@
   "eval_harness_tasks": [
   ],
   "val_batches": 2000,
-  "val_every": 1000,
+  "val_every": 500,
   "ckpt_every": 1000,
   "keep_every": 3000,
 
-  "name": "prosecraft_GPT3_6B_pile_rotary",
-  "comment": ""
+  "name": "resumed_28k_prosecraft_GPT3",
+  "comment": "Resumed from step 28k"
 }
