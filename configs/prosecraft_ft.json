@@ -12,19 +12,19 @@
     "per_replica_batch": 1,
     "gradient_accumulation_steps": 32,
   
-    "warmup_steps": 1865,
-    "anneal_steps": 35438,
-    "lr": 2.5e-5,
-    "end_lr": 2.5e-6,
+    "warmup_steps": 300,
+    "anneal_steps": 42895,
+    "lr": 1e-5,
+    "end_lr": 1e-6,
     "weight_decay": 0.1,
-    "total_steps": 37303,
+    "total_steps": 43195,
   
     "tpu_size": 8,
   
     "bucket": "prosecraft-storage",
-    "model_dir": "mesh_jax_pile_6B_rotary",
+    "model_dir": "prosecraft_ft",
   
-    "train_set": "prosecraft.train.index",
+    "train_set": "prosecraft_ft.train.index",
     "val_set": {
         "prosecraft_val_old":"prosecraft.val.index",
         "prosecraft_val_ft":"prosecraft_ft.val.index"
@@ -36,7 +36,7 @@
     "ckpt_every": 500,
     "keep_every": 5000,
   
-    "name": "prosecraft_GPT3_6B_pile_rotary",
-    "comment": ""
+    "name": "prosecraft_ft",
+    "comment": "Training using the shuffled train dataset, with the old and new val datasets, 1,382,217 tokens / 32 batch size == 43195 steps"
   }
   
