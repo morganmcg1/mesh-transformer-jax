@@ -46,7 +46,7 @@ def parse_args():
     return args
 
 
-def save(network, step, bucket, path, mp, aux=None, keep_n=3, delete_old=True):
+def save(network, step, bucket, path, mp, aux=None, keep_n=3, delete_old=True, wandb_artifacts=None):
     assert path
     client = storage.Client()
 
@@ -70,6 +70,10 @@ def save(network, step, bucket, path, mp, aux=None, keep_n=3, delete_old=True):
     res = []
     for shard_id in range(mp):
         write_ckpt(network.state, f"gs://{bucket}/{path}/step_{step}/", shard_id)
+        # # Write artifacts file
+        # if wandb_artifacts is not None:
+        #     wandb_artifacts[shard_id].add_file(f"gs://{bucket}/{path}/step_{step}/{shard_id}")
+        #     wandb.log_artifact(wandb_artifacts[shard_id], aliases=[f'step={step}',f'shard={shard_id}'])
 
     print(f"Wrote checkpoint in {time.time() - start:.06}s")
 
@@ -301,6 +305,7 @@ if __name__ == "__main__":
                      mp=cores_per_replica,
                      aux={"train_loader": train_dataset.get_state()},
                      delete_old=True,
+                     wandb_artifacts=wandb_checkpoints
                      )
 
             if step % val_every == 1:  # 1 because we've already taken a step to compile train fn

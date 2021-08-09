@@ -12,6 +12,16 @@ from transformers import GPT2TokenizerFast
 from tqdm import tqdm
 
 
+def str2bool(v):
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
+
 def parse_args():
     parser = argparse.ArgumentParser(description="""
     Converts a text dataset into the training data format expected by the model.
@@ -62,7 +72,9 @@ def parse_args():
     misc_args.add_argument("--verbose",
                            default=False, action="store_true",
                            help="Prints extra information, such as the text removed by --min-unique-tokens")
-
+    parser.add_argument("--nested-dir", type=str2bool, nargs='?',
+                        const=True, default=False,
+                        help="If your files are nested as author->book->files")     
     args = parser.parse_args()
 
     if not args.input_dir.endswith("/"):
@@ -71,12 +83,31 @@ def parse_args():
     return args
 
 
-def get_files(input_dir):
-    filetypes = ["jsonl.zst", ".txt", ".xz", ".tar.gz"]
-    files = [list(Path(input_dir).glob(f"*{ft}")) for ft in filetypes]
-    # flatten list of list -> list and stringify Paths
-    return [str(item) for sublist in files for item in sublist]
+# def get_files(input_dir):
+#     filetypes = ["jsonl.zst", ".txt", ".xz", ".tar.gz"]
+#     files = [list(Path(input_dir).glob(f"*{ft}")) for ft in filetypes]
+#     # flatten list of list -> list and stringify Paths
+#     return [str(item) for sublist in files for item in sublist]
 
+
+def get_files(input_dir, filetypes=None):
+    # gets all files of <filetypes> in input_dir
+    if filetypes == None:
+        filetypes = ["jsonl.zst", ".txt", ".xz", ".tar.gz"]
+    
+    if not args.nested_dir:
+        files = [list(Path(input_dir).glob(f"*{ft}")) for ft in filetypes]
+    else:
+        authors_paths = [x for x in Path(args.input_dir).iterdir()]
+        files = []
+        for a in authors_paths:
+            files.append(list(Path(a).glob(f"**/*.txt")))
+    # flatten list of list -> list and stringify Paths
+    flattened_list = [str(item) for sublist in files for item in sublist]
+    if not flattened_list:
+        raise Exception(f"""did not find any files at this path {input_dir},\
+ please also ensure your files are in format {filetypes}""")
+    return flattened_list
 
 def wikitext_detokenizer(string):
     # contractions
@@ -246,38 +277,52 @@ def chunk_and_finalize(arrays, args, encoder):
 def create_tfrecords(files, args):
     GPT2TokenizerFast.max_model_input_sizes['gpt2'] = 1e20  # disables a misleading warning
     encoder = GPT2TokenizerFast.from_pretrained('gpt2')
+    
+    # shuffle the files list
+    random.shuffle(files)
 
     random.seed(args.seed)
+    dropped_tokens_len = 0
+    # Set the number of files to process at a time
+    n_files=1500
+    for i in range(0,len(files),n_files):
+        fs = files[i:i+n_files]
 
-    all_sequences_across_epochs = []
+        all_sequences_across_epochs = []
 
-    docs = read_files_to_tokenized_docs(files, args, encoder)
+        docs = read_files_to_tokenized_docs(fs, args, encoder)
 
-    full_seqs, trailing_data = chunk_and_finalize(docs, args, encoder)
-
-    all_sequences_across_epochs.extend(full_seqs)
-
-    # ep 2+
-    for ep_ix in range(1, args.n_repack_epochs):
-        # re-shuffle
-        if not args.preserve_data_order:
-            random.shuffle(docs)
-            full_seqs, trailing_data = chunk_and_finalize(docs, args, encoder)
-        else:
-            # if we're preserving data order, we can still "repack" by shifting everything
-            # with the trailing data of the last epoch at the beginning
-            seqs_with_prefix = [trailing_data] + full_seqs
-            full_seqs, trailing_data = chunk_and_finalize(seqs_with_prefix, args, encoder)
+        full_seqs, trailing_data = chunk_and_finalize(docs, args, encoder)
 
         all_sequences_across_epochs.extend(full_seqs)
 
-    # final
-    print(f"dropped {len(trailing_data)} tokens of trailing data")
+        # # ep 2+
+        # for ep_ix in range(1, args.n_repack_epochs):
+        #     # re-shuffle
+        #     if not args.preserve_data_order:
+        #         random.shuffle(docs)
+        #         full_seqs, trailing_data = chunk_and_finalize(docs, args, encoder)
+        #     else:
+        #         # if we're preserving data order, we can still "repack" by shifting everything
+        #         # with the trailing data of the last epoch at the beginning
+        #         seqs_with_prefix = [trailing_data] + full_seqs
+        #         full_seqs, trailing_data = chunk_and_finalize(seqs_with_prefix, args, encoder)
 
-    total_sequence_len = len(all_sequences_across_epochs)
+        #     all_sequences_across_epochs.extend(full_seqs)
 
-    fp = os.path.join(args.output_dir, f"{args.name}_{total_sequence_len}.tfrecords")
-    write_tfrecord(all_sequences_across_epochs, fp)
+        # final
+        dropped_l = len(trailing_data)
+        dropped_tokens_len+=dropped_l
+        print(f"dropped {dropped_l} tokens of trailing data")
+
+        total_sequence_len = len(all_sequences_across_epochs)
+
+        fp = os.path.join(args.output_dir, f"{args.name}_{i}_{total_sequence_len}.tfrecords")
+        write_tfrecord(all_sequences_across_epochs, fp)
+        print(f'files {i} to {i+n_files} converted to tfrecords')
+        i+=n_files
+
+    print(f'{dropped_tokens_len} tokens in total dropped')
 
 
 if __name__ == "__main__":
@@ -288,3 +333,14 @@ if __name__ == "__main__":
     files = get_files(args.input_dir)
 
     results = create_tfrecords(files, args)
+
+    # write tfrecrods files names
+    tfrecords_list = list(Path(args.output_dir).glob(f"*.tfrecords"))
+    o_d = str(args.output_dir).split('/')[-1]
+    bucket_name = f'gs://prosecraft-storage'
+    with open(f'{args.output_dir}/tfrecords_paths.txt', 'w') as f:
+        for item in tfrecords_list:
+            nm = str(item).split('/')
+            f_path = f"{bucket_name}/{nm[-2]}/{nm[-1]}"
+            print(f_path)
+            f.write(f_path)

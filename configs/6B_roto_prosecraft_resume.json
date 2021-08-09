@@ -1,0 +1,38 @@
+{
+  "layers": 28,
+  "d_model": 4096,
+  "n_heads": 16,
+  "n_vocab": 50400,
+  "norm": "layernorm",
+  "pe": "rotary",
+  "pe_rotary_dims": 64,
+
+  "seq": 2048,
+  "cores_per_replica": 8,
+  "per_replica_batch": 1,
+  "gradient_accumulation_steps": 32,
+
+  "warmup_steps": 200,
+  "anneal_steps": 18450,
+  "lr": 1e-5,
+  "end_lr": 1e-6,
+  "weight_decay": 0.1,
+  "total_steps": 18650,
+
+  "tpu_size": 8,
+
+  "bucket": "prosecraft-storage",
+  "model_dir": "mesh_jax_pile_6B_rotary",
+
+  "train_set": "prosecraft.train.index",
+  "val_set": {"pc_testing":"prosecraft.val.index"},
+  "eval_harness_tasks": [
+  ],
+  "val_batches": 2000,
+  "val_every": 500,
+  "ckpt_every": 1000,
+  "keep_every": 3000,
+
+  "name": "resumed_28k_prosecraft_GPT3",
+  "comment": "Resumed from step 28k"
+}
