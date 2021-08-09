@@ -40,13 +40,12 @@ def parse_args():
     parser.add_argument("--config", type=str, default=None, help="Config file location")
     parser.add_argument("--tune-model-path", type=str, default=None, help="Base model to finetune")
     parser.add_argument("--fresh-opt", default=False, action="store_true", help="Use a newly initialized optimizer, ignoring any optimizer state saved in the base checkpoint")
-    parser.add_argument("--wandb-project", type=str, default="mesh-transformer-jax", help="Weights & Biases project name")
 
     args = parser.parse_args()
     return args
 
 
-def save(network, step, bucket, path, mp, aux=None, keep_n=3, delete_old=True, wandb_artifacts=None):
+def save(network, step, bucket, path, mp, aux=None, keep_n=3, delete_old=True):
     assert path
     client = storage.Client()
 
@@ -70,10 +69,6 @@ def save(network, step, bucket, path, mp, aux=None, keep_n=3, delete_old=True, w
     res = []
     for shard_id in range(mp):
         write_ckpt(network.state, f"gs://{bucket}/{path}/step_{step}/", shard_id)
-        # # Write artifacts file
-        # if wandb_artifacts is not None:
-        #     wandb_artifacts[shard_id].add_file(f"gs://{bucket}/{path}/step_{step}/{shard_id}")
-        #     wandb.log_artifact(wandb_artifacts[shard_id], aliases=[f'step={step}',f'shard={shard_id}'])
 
     print(f"Wrote checkpoint in {time.time() - start:.06}s")
 
@@ -293,7 +288,7 @@ if __name__ == "__main__":
             val_set.reset()
         print(f"Eval fn compiled in {time.time() - start:.06}s")
 
-        wandb.init(project=params["wandb_project"], name=params["name"], config=params)
+        wandb.init(project="mesh-transformer-jax", name=params["name"], config=params)
 
         G_noise_avg = None
         S_noise_avg = None
@@ -305,7 +300,6 @@ if __name__ == "__main__":
                      mp=cores_per_replica,
                      aux={"train_loader": train_dataset.get_state()},
                      delete_old=True,
-                     wandb_artifacts=wandb_checkpoints
                      )
 
             if step % val_every == 1:  # 1 because we've already taken a step to compile train fn
