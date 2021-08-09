@@ -346,9 +346,9 @@ if __name__ == "__main__":
                         start = time.time()
 
                         ### taken from device_sample
-                        local_shards = max(jax.local_device_count() // mesh_shape[1], 1)
+                        # local_shards = max(jax.local_device_count() // mesh_shape[1], 1)
                         # del network.state["opt_state"]
-                        network.state = network.move_xmap(network.state, np.zeros(local_shards))
+                        # network.state = network.move_xmap(network.state, np.zeros(local_shards))
                         ###
 
                         output = network.generate(batched_tokens, length, gen_len, {"top_p": np.ones(total_batch) * top_p, 
