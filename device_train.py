@@ -358,7 +358,7 @@ if __name__ == "__main__":
                             sample = repr(tokenizer.decode(o))
                             print(f"sample {idx}: {sample}")
 
-                            text_table.add_data([step, idx, temp, top_p, float(val_loss), context, sample]) 
+                            text_table.add_data(step, idx, temp, top_p, float(val_loss), context, sample) 
 
                         print(f"completion done in {time.time() - start:06}s")
 
