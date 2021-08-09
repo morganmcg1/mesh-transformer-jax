@@ -291,7 +291,7 @@ if __name__ == "__main__":
 
         wandb.init(project=params["wandb_project"], name=params["name"], config=params)
         if args.log_generation: 
-            text_table = wandb.Table(columns=["step", "sample_idx", "temp", "top_p", "val_loss", "prompt", "text"])
+            text_table = wandb.Table(columns=["step", "sample_idx", "prompt", "text", "temp", "top_p", "val_loss"])
 
         G_noise_avg = None
         S_noise_avg = None
@@ -358,22 +358,12 @@ if __name__ == "__main__":
                             sample = repr(tokenizer.decode(o))
                             print(f"sample {idx}: {sample}")
 
-                            text_table.add_data(step, idx, temp, top_p, float(val_loss), context, sample) 
+                            text_table.add_data(step, idx, context, sample, temp, top_p, float(val_loss)) 
 
                         print(f"completion done in {time.time() - start:06}s")
 
                         wandb_stats.update({"text_samples/training_samples" : text_table})
 
-                            # samples = []
-                            # decoded_tokens = output[1][0]
-
-                            # for o in decoded_tokens[:, :, 0]:
-                            #     samples.append(f"\033[1m{context}\033[0m{tokenizer.decode(o)}")
-
-                        #     print(f"completion done in {time.time() - start:06}s")
-                        #     return samples
-
-                        # print(infer("EleutherAI is")[0])
                     wandb.log(wandb_stats, step)
 
             if step == total_steps:
