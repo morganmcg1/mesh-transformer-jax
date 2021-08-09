@@ -40,6 +40,7 @@ def parse_args():
     parser.add_argument("--config", type=str, default=None, help="Config file location")
     parser.add_argument("--tune-model-path", type=str, default=None, help="Base model to finetune")
     parser.add_argument("--fresh-opt", default=False, action="store_true", help="Use a newly initialized optimizer, ignoring any optimizer state saved in the base checkpoint")
+    parser.add_argument("--wandb-project", type=str, default="mesh-transformer-jax", help="Weights & Biases project name")
 
     args = parser.parse_args()
     return args
@@ -169,13 +170,15 @@ if __name__ == "__main__":
     # alpha parameter for the exponential moving averages used to compute B_simple
     noise_scale_alpha = params.get("noise_scale_alpha", 0.01)
 
+    scheduler = util.gpt3_schedule(warmup_steps, anneal_steps, lr, end_lr)
+
     opt = optax.chain(
         optax.scale(1 / gradient_accumulation_steps),
         clip_by_global_norm(1),
         optax.scale_by_adam(),
         additive_weight_decay(weight_decay),
         optax.scale(-1),
-        optax.scale_by_schedule(util.gpt3_schedule(warmup_steps, anneal_steps, lr, end_lr))
+        optax.scale_by_schedule(scheduler)
     )
 
     params["optimizer"] = opt
@@ -286,7 +289,7 @@ if __name__ == "__main__":
             val_set.reset()
         print(f"Eval fn compiled in {time.time() - start:.06}s")
 
-        wandb.init(project='mesh-transformer-jax', name=params["name"], config=params)
+        wandb.init(project=params["wandb_project"], name=params["name"], config=params)
 
         G_noise_avg = None
         S_noise_avg = None
@@ -386,6 +389,7 @@ if __name__ == "__main__":
                 "train/steps_per_sec": steps_per_sec,
                 "train/tokens_per_sec": tokens_per_sec,
                 "train/grad_norm": grad_norm,
+                'train/learning_rate': float(scheduler(step)),
                 "sequences_processed": sequences_processed,
                 "tokens_processed": tokens_processed,
             }
