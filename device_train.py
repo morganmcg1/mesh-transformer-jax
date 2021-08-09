@@ -46,7 +46,7 @@ def parse_args():
     return args
 
 
-def save(network, step, bucket, path, mp, aux=None, keep_n=3, delete_old=True):
+def save(network, step, bucket, path, mp, aux=None, keep_n=3, delete_old=True, wandb_artifacts=None):
     assert path
     client = storage.Client()
 
@@ -70,6 +70,10 @@ def save(network, step, bucket, path, mp, aux=None, keep_n=3, delete_old=True):
     res = []
     for shard_id in range(mp):
         write_ckpt(network.state, f"gs://{bucket}/{path}/step_{step}/", shard_id)
+        # # Write artifacts file
+        # if wandb_artifacts is not None:
+        #     wandb_artifacts[shard_id].add_file(f"gs://{bucket}/{path}/step_{step}/{shard_id}")
+        #     wandb.log_artifact(wandb_artifacts[shard_id], aliases=[f'step={step}',f'shard={shard_id}'])
 
     print(f"Wrote checkpoint in {time.time() - start:.06}s")
 
@@ -166,12 +170,12 @@ if __name__ == "__main__":
     lr = params["lr"]
     end_lr = params["end_lr"]
     weight_decay = params["weight_decay"]
-   
+
     # alpha parameter for the exponential moving averages used to compute B_simple
     noise_scale_alpha = params.get("noise_scale_alpha", 0.01)
 
     scheduler = util.gpt3_schedule(warmup_steps, anneal_steps, lr, end_lr)
-    
+
     opt = optax.chain(
         optax.scale(1 / gradient_accumulation_steps),
         clip_by_global_norm(1),
@@ -303,6 +307,7 @@ if __name__ == "__main__":
                      mp=cores_per_replica,
                      aux={"train_loader": train_dataset.get_state()},
                      delete_old=True,
+                     wandb_artifacts=wandb_checkpoints
                      )
 
             if step % val_every == 1:  # 1 because we've already taken a step to compile train fn
@@ -381,6 +386,7 @@ if __name__ == "__main__":
 
             steps_per_sec = 1 / (time.time() - start)
             tokens_per_sec = tokens_per_step * steps_per_sec
+
             sequences_processed = sequences_per_step * step
             tokens_processed = tokens_per_step * step
 
@@ -440,8 +446,7 @@ if __name__ == "__main__":
                 "train/steps_per_sec": steps_per_sec,
                 "train/tokens_per_sec": tokens_per_sec,
                 "train/grad_norm": grad_norm,
-                "train/learning_rate": float(scheduler(network.state["opt_state"][-1].count[0].item())),
-                "train/learning_rate_old": float(scheduler(step)),
+                'train/learning_rate': float(scheduler(step)),
                 "sequences_processed": sequences_processed,
                 "tokens_processed": tokens_processed,
             }

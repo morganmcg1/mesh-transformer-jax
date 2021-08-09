@@ -1,0 +1,38 @@
+{
+    "layers": 28,
+    "d_model": 4096,
+    "n_heads": 16,
+    "n_vocab": 50400,
+    "norm": "layernorm",
+    "pe": "rotary",
+    "pe_rotary_dims": 64,
+  
+    "seq": 2048,
+    "cores_per_replica": 8,
+    "per_replica_batch": 1,
+    "gradient_accumulation_steps": 16,
+  
+    "warmup_steps": 40,
+    "anneal_steps": 814,
+    "lr": 1e-5,
+    "end_lr": 1e-6,
+    "weight_decay": 0.1,
+    "total_steps": 854,
+  
+    "tpu_size": 8,
+  
+    "bucket": "prosecraft-storage",
+    "model_dir": "prosecraft_samples_ft",
+  
+    "train_set": "samples_ft.train.index",
+    "val_set": {"pc_testing":"samples.val.index"},
+    "eval_harness_tasks": [
+    ],
+    "val_batches": 2000,
+    "val_every": 40,
+    "ckpt_every": 40,
+    "keep_every": 160,
+  
+    "name": "samples_ft_16bs_1e_1e-5",
+    "comment": "1 epoch, new fine-tuned train dataset, bs 16 (7800 steps) training, 13651 sequences / 16 == 854)"
+  }
