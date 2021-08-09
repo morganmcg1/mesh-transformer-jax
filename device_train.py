@@ -40,7 +40,6 @@ def parse_args():
     parser.add_argument("--config", type=str, default=None, help="Config file location")
     parser.add_argument("--tune-model-path", type=str, default=None, help="Base model to finetune")
     parser.add_argument("--fresh-opt", default=False, action="store_true", help="Use a newly initialized optimizer, ignoring any optimizer state saved in the base checkpoint")
-    parser.add_argument("--wandb-project", type=str, default="mesh-transformer-jax", help="Weights & Biases project name")
     parser.add_argument("--log-generation", default=False, action="store_true", help="Generate text samples and log to Weights & Biases at every validation")
 
     args = parser.parse_args()
@@ -291,6 +290,8 @@ if __name__ == "__main__":
         print(f"Eval fn compiled in {time.time() - start:.06}s")
 
         wandb.init(project=params["wandb_project"], name=params["name"], config=params)
+        if args.log_generation: 
+            text_table = wandb.Table(columns=["step", "sample_idx", "temp", "top_p", "val_loss", "prompt", "text"])
 
         G_noise_avg = None
         S_noise_avg = None
@@ -316,7 +317,57 @@ if __name__ == "__main__":
                     val_loss = np.array(val_loss).mean()
                     print(f"validation loss for step {step}, set {name}: {val_loss}")
 
-                    wandb.log({f'val/loss_{name}': float(val_loss)}, step)
+                    wandb_stats = {f'val/loss_{name}': float(val_loss)}
+
+                    if args.log_generation:
+                
+                        from mesh_transformer.sampling import nucleaus_sample
+                        params["sampler"] = nucleaus_sample
+                        
+                        import transformers
+                        tokenizer = transformers.GPT2TokenizerFast.from_pretrained('gpt2')
+                        
+                        total_batch = per_replica_batch * jax.device_count() // cores_per_replica
+
+                        context = "EleutherAI is" #input("Type input:")
+                        tokens = tokenizer.encode(context)
+
+                        provided_ctx = len(tokens)
+                        pad_amount = seq - provided_ctx
+
+                        padded_tokens = np.pad(tokens, ((pad_amount, 0),)).astype(np.uint32)
+                        batched_tokens = np.array([padded_tokens] * total_batch)
+                        
+                        length = np.ones(total_batch, dtype=np.uint32) * len(tokens)
+                        top_p=0.9
+                        temp=0.75
+                        gen_len=512
+
+                        start = time.time()
+                        output = network.generate(batched_tokens, length, gen_len, {"top_p": np.ones(total_batch) * top_p, 
+                                                                                    "temp": np.ones(total_batch) * temp})
+
+                        for idx, o in enumerate(output[1][0][:, :, 0]):
+                            sample = repr(tokenizer.decode(o))
+                            print(f"sample {idx}: {sample}")
+
+                            text_table.add_data([step, idx, temp, top_p, float(val_loss), context, sample]) 
+
+                        print(f"completion done in {time.time() - start:06}s")
+
+                        wandb_stats.update({"text_samples/training_samples" : text_table})
+
+                            # samples = []
+                            # decoded_tokens = output[1][0]
+
+                            # for o in decoded_tokens[:, :, 0]:
+                            #     samples.append(f"\033[1m{context}\033[0m{tokenizer.decode(o)}")
+
+                        #     print(f"completion done in {time.time() - start:06}s")
+                        #     return samples
+
+                        # print(infer("EleutherAI is")[0])
+                    wandb.log(wandb_stats, step)
 
             if step == total_steps:
                 print("training completed!")
@@ -327,50 +378,6 @@ if __name__ == "__main__":
                 network, train_dataset.get_samples()
             )
             step += 1
-
-            if params["log_generation"]:
-                
-                from mesh_transformer.sampling import nucleaus_sample
-                params["sampler"] = nucleaus_sample
-                
-                import transformers
-                tokenizer = transformers.GPT2TokenizerFast.from_pretrained('gpt2')
-                
-                total_batch = per_replica_batch * jax.device_count() // cores_per_replica
-
-                context = "EleutherAI is" #input("Type input:")
-                tokens = tokenizer.encode(context)
-
-                provided_ctx = len(tokens)
-                pad_amount = seq - provided_ctx
-
-                padded_tokens = np.pad(tokens, ((pad_amount, 0),)).astype(np.uint32)
-                batched_tokens = np.array([padded_tokens] * total_batch)
-                
-                length = np.ones(total_batch, dtype=np.uint32) * len(tokens)
-                top_p=0.9
-                temp=0.75
-                gen_len=512
-
-                start = time.time()
-                output = network.generate(batched_tokens, length, gen_len, {"top_p": np.ones(total_batch) * top_p, 
-                                                                            "temp": np.ones(total_batch) * temp})
-
-                for idx, o in enumerate(output[1][0][:, :, 0]):
-                    print(f"sample {idx}: {repr(tokenizer.decode(o))}")
-
-                print(f"completion done in {time.time() - start:06}s")
-
-                    # samples = []
-                    # decoded_tokens = output[1][0]
-
-                    # for o in decoded_tokens[:, :, 0]:
-                    #     samples.append(f"\033[1m{context}\033[0m{tokenizer.decode(o)}")
-
-                #     print(f"completion done in {time.time() - start:06}s")
-                #     return samples
-
-                # print(infer("EleutherAI is")[0])
 
             steps_per_sec = 1 / (time.time() - start)
             tokens_per_sec = tokens_per_step * steps_per_sec
