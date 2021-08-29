@@ -38,7 +38,7 @@ if __name__ == "__main__":
     project = params.get("wandb_project", "mesh-transformer-jax")
     wandb.init(project=project, name=params["name"], config=params)
     prompt_table = wandb.Table(
-        columns=['title', 'selection' ,'prompt', 'completion','top_p', 'temp', 'compleition_time'])
+        columns=['model_checkpoint','title', 'selection' ,'prompt', 'completion','top_p', 'temp', 'compleition_time'])
     prompt_df = pd.DataFrame()
 
     titles_ls = []
@@ -130,7 +130,7 @@ if __name__ == "__main__":
                     print(f"Title {i}: completion done in {time.time() - start:06}s \n")
 
                     prompt_table.add_data(
-                        title, 'first' , context, repr(tokenizer.decode(o)),
+                        f'{model_dir}_{ckpt_step}', title, 'first' , context, repr(tokenizer.decode(o)),
                         0.9, 0.75, time.time() - start
                     )
                     titles_ls.append(title)
@@ -155,6 +155,23 @@ if __name__ == "__main__":
 
         from datetime import datetime
         now = datetime.now()
+
+        # def write(x, ckpt_dir):
+        #     # start = time.time()
+        #     idx, i = x
+        #     file_path = ckpt_dir + f"{idx}.npz"
+        #     for _ in range(3):
+        #         try:
+        #             with open(file_path, "wb") as f:
+        #                 np.savez(f, *i)
+        #                 # cloudpickle.dump(i, f)
+        #                 # print(f"written {idx} in {time.time() - start:.06}s")
+        #             return
+        #         except:
+        #             print("save failed, trying again")
+
+        #     print("save failed 3 times, exiting")
+        #     raise Exception("save failed")
 
         prompt_df.to_csv(f"gs://{bucket}/{model_dir}/step_{ckpt_step}/prompt_completions_{now}.csv")
         wandb.finish()
