@@ -38,7 +38,7 @@
     "ckpt_every": 500,
     "keep_every": 5000,
   
-    "name": "prosecraft_ft_resumed_slim_20001",
+    "name": "prompt_prosecraft_ft_resumed_20001",
     "comment": "Training using the shuffled train dataset, with the old and new val datasets, 1,382,217 tokens / 32 batch size == 43195 steps"
   }
   
