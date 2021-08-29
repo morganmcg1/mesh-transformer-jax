@@ -31,6 +31,8 @@ def parse_args():
         - set `tpu_size` to 8 (if on a v3-8)
         - set `warmup_steps`, `anneal_steps`, `lr`, `end_lr` to the lr schedule for your finetuning run
         - the global step will reset to 0, keep that in mind when writing your lr schedule
+        - set `name` to specify the name of the Weights & Biases run
+        - set `wandb_project` to specify the Weights & Biases project to log to
     To prepare data in the expected data format:
         - use the script `create_finetune_tfrecords.py` in this repo to create data in the expected format
         - upload the .tfrecords files to GCS
@@ -289,9 +291,8 @@ if __name__ == "__main__":
             val_set.reset()
         print(f"Eval fn compiled in {time.time() - start:.06}s")
 
-        wandb.init(project="mesh-transformer-jax", name=params["name"], config=params)
-        if args.log_generation: 
-            text_table = wandb.Table(columns=["step", "sample_idx", "prompt", "text", "temp", "top_p", "val_loss"])
+        project = params.get("wandb_project", "mesh-transformer-jax")
+        wandb.init(project=project, name=params["name"], config=params)
 
         G_noise_avg = None
         S_noise_avg = None
@@ -432,7 +433,7 @@ if __name__ == "__main__":
                 "train/steps_per_sec": steps_per_sec,
                 "train/tokens_per_sec": tokens_per_sec,
                 "train/grad_norm": grad_norm,
-                'train/learning_rate': float(scheduler(step)),
+                "train/learning_rate": float(scheduler(network.state["opt_state"][-1].count[0].item())),
                 "sequences_processed": sequences_processed,
                 "tokens_processed": tokens_processed,
             }
