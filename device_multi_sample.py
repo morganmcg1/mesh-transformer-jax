@@ -129,7 +129,7 @@ if __name__ == "__main__":
 
                     print(f"Title {i}: completion done in {time.time() - start:06}s \n")
 
-                    prompt_table.add_row(
+                    prompt_table.add_data(
                         title, 'first' , context, repr(tokenizer.decode(o)),
                         0.9, 0.75, time.time() - start
                     )
