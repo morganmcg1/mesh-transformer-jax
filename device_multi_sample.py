@@ -127,7 +127,7 @@ if __name__ == "__main__":
                     for idx, o in enumerate(output[1][0][:, :, 0]):
                         print(f"sample {idx}: {repr(tokenizer.decode(o))}")
 
-                    print(f"completion done in {time.time() - start:06}s \n")
+                    print(f"Title {i}: completion done in {time.time() - start:06}s \n")
 
                     prompt_table.add_row(
                         title, 'first' , context, repr(tokenizer.decode(o)),
