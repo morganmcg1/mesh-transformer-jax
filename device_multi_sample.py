@@ -41,6 +41,7 @@ if __name__ == "__main__":
         columns=['model_checkpoint','title', 'selection' ,'prompt', 'completion','top_p', 'temp', 'compleition_time'])
     prompt_df = pd.DataFrame()
 
+    model_ls = []
     titles_ls = []
     selection_ls = []
     prompt_ls = []
@@ -133,10 +134,11 @@ if __name__ == "__main__":
                         f'{model_dir}_{ckpt_step}', title, 'first' , context, repr(tokenizer.decode(o)),
                         0.9, 0.75, time.time() - start
                     )
+                    model_ls.append(f'{model_dir}_{ckpt_step}')
                     titles_ls.append(title)
                     selection_ls.append('first')
                     prompt_ls.append(context)
-                    completion_ls.append(repr(tokenizer.decode(o)))
+                    completion_ls.append(str(repr(tokenizer.decode(o))))
                     top_p_ls.append(0.9)
                     temp_ls.append(0.75)
                     compleition_time_ls.append(time.time() - start)
@@ -144,6 +146,7 @@ if __name__ == "__main__":
         wandb.log({'Prompt Table': prompt_table})
 
         prompt_df = pd.DataFrame({
+            'model': model_ls,
             'title': titles_ls,
             'selection': selection_ls,
             'prompt': prompt_ls,
