@@ -39,6 +39,15 @@ if __name__ == "__main__":
     wandb.init(project=project, name=params["name"], config=params)
     prompt_table = wandb.Table(
         columns=['title', 'selection' ,'prompt', 'completion','top_p', 'temp', 'compleition_time'])
+    prompt_df = pd.DataFrame()
+
+    titles_ls = []
+    selection_ls = []
+    prompt_ls = []
+    completion_ls = []
+    top_p_ls = []
+    temp_ls = []
+    compleition_time_ls = []
 
     gradient_accumulation_steps = params.get("gradient_accumulation_steps", 1)
     per_replica_batch = params["per_replica_batch"]
@@ -120,7 +129,32 @@ if __name__ == "__main__":
 
                     print(f"completion done in {time.time() - start:06}s \n")
 
-                    prompt_table.add_row(title, 'first' , context, repr(tokenizer.decode(o)),
-                    0.9, 0.75, time.time() - start)
+                    prompt_table.add_row(
+                        title, 'first' , context, repr(tokenizer.decode(o)),
+                        0.9, 0.75, time.time() - start
+                    )
+                    titles_ls.append(title)
+                    selection_ls.append('first')
+                    prompt_ls.append(context)
+                    completion_ls.append(repr(tokenizer.decode(o)))
+                    top_p_ls.append(0.9)
+                    temp_ls.append(0.75)
+                    compleition_time_ls.append(time.time() - start)
         
         wandb.log({'Prompt Table': prompt_table})
+
+        prompt_df = pd.DataFrame({
+            'title': titles_ls,
+            'selection': selection_ls,
+            'prompt': prompt_ls,
+            'completion': completion_ls,
+            'top_p': top_p_ls,
+            'temp': temp_ls,
+            'compleition_time': compleition_time_ls
+        })
+
+        from datetime import datetime
+        now = datetime.now()
+
+        prompt_df.to_csv(f"gs://{bucket}/{model_dir}/step_{ckpt_step}/prompt_completions_{now}.csv")
+        wandb.finish()
