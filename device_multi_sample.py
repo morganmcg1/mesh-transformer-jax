@@ -40,7 +40,7 @@ if __name__ == "__main__":
     prompt_table = wandb.Table(
         columns=['title', 'selection' ,'prompt', 'completion','top_p', 'temp', 'compleition_time'])
 
-    radient_accumulation_steps = params.get("gradient_accumulation_steps", 1)
+    gradient_accumulation_steps = params.get("gradient_accumulation_steps", 1)
     per_replica_batch = params["per_replica_batch"]
     cores_per_replica = params["cores_per_replica"]
 
