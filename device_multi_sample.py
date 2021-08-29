@@ -13,6 +13,7 @@ from mesh_transformer.sampling import nucleaus_sample
 from mesh_transformer.transformer_shard import CausalTransformer
 import transformers
 from smart_open import open
+import wandb
 
 from mesh_transformer.util import clip_by_global_norm
 
@@ -32,8 +33,12 @@ if __name__ == "__main__":
 
     prompts_path = params['prompts']
     prompts = pd.read_csv(f'prompts/{prompts_path}')
-    
     n_repeats = params['n_repeats']
+
+    project = params.get("wandb_project", "mesh-transformer-jax")
+    wandb.init(project=project, name=params["name"], config=params)
+    prompt_table = wandb.Table(
+        columns=['title', 'selection' ,'prompt', 'completion','top_p', 'temp', 'compleition_time'])
 
     radient_accumulation_steps = params.get("gradient_accumulation_steps", 1)
     per_replica_batch = params["per_replica_batch"]
@@ -93,7 +98,7 @@ if __name__ == "__main__":
         for i in range(len(prompts)):
             if not prompts.iloc[i].isnull().values.any():
                 context = prompts.iloc[i]['first']
-
+                title = prompts.iloc[i]['title']
                 for rep in range(n_repeats):
                     # context = input("Type input:")
                     tokens = tokenizer.encode(context)
@@ -114,3 +119,8 @@ if __name__ == "__main__":
                         print(f"sample {idx}: {repr(tokenizer.decode(o))}")
 
                     print(f"completion done in {time.time() - start:06}s \n")
+
+                    prompt_table.add_row(title, 'first' , context, repr(tokenizer.decode(o)),
+                    0.9, 0.75, time.time() - start)
+        
+        wandb.log({'Prompt Table': prompt_table})
