@@ -23,8 +23,11 @@
   
     "bucket": "prosecraft-storage",
     "model_dir": "prosecraft_ft_resumed",
+    
     "prompts": "prompts.csv",
     "n_repeats": 3,
+    "top_p": 0.9,
+    "temp": 1.0,
   
     "train_set": "prosecraft_ft.train.index",
     "val_set": {

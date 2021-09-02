@@ -34,6 +34,8 @@ if __name__ == "__main__":
     prompts_path = params['prompts']
     prompts = pd.read_csv(f'prompts/{prompts_path}')
     n_repeats = params['n_repeats']
+    top_p = params.get("top_p", 0.9)
+    temp = params.get("temp", 0.75)
 
     project = params.get("wandb_project", "mesh-transformer-jax")
     wandb.init(project=project, name=params["name"], config=params)
@@ -89,7 +91,7 @@ if __name__ == "__main__":
 
     ckpt_step = meta["checkpoints"][-1]
     print(f"using checkpoint {ckpt_step}")
-
+    
     total_batch = per_replica_batch * jax.device_count() // cores_per_replica
     with jax.experimental.maps.mesh(devices, ('dp', 'mp')):
         network = CausalTransformer(params)
@@ -122,8 +124,8 @@ if __name__ == "__main__":
                     batched_tokens = np.array([padded_tokens] * total_batch)
                     length = np.ones(total_batch, dtype=np.uint32) * len(tokens)
 
-                    output = network.generate(batched_tokens, length, 512, {"top_p": np.ones(total_batch) * 0.9,
-                                                                            "temp": np.ones(total_batch) * 0.75})
+                    output = network.generate(batched_tokens, length, 512, {"top_p": np.ones(total_batch) * top_p,
+                                                                            "temp": np.ones(total_batch) * temp})
 
                     for idx, o in enumerate(output[1][0][:, :, 0]):
                         print(f"sample {idx}: {repr(tokenizer.decode(o))}")
@@ -132,15 +134,15 @@ if __name__ == "__main__":
 
                     prompt_table.add_data(
                         f'{model_dir}_{ckpt_step}', title, 'first' , context, repr(tokenizer.decode(o)),
-                        0.9, 0.75, time.time() - start
+                        top_p, temp, time.time() - start
                     )
                     model_ls.append(f'{model_dir}_{ckpt_step}')
                     titles_ls.append(title)
                     selection_ls.append('first')
                     prompt_ls.append(context)
                     completion_ls.append(str(repr(tokenizer.decode(o))))
-                    top_p_ls.append(0.9)
-                    temp_ls.append(0.75)
+                    top_p_ls.append(top_p)
+                    temp_ls.append(temp)
                     compleition_time_ls.append(time.time() - start)
         
         wandb.log({'Prompt Table': prompt_table})
@@ -158,23 +160,6 @@ if __name__ == "__main__":
 
         from datetime import datetime
         now = datetime.now()
-
-        # def write(x, ckpt_dir):
-        #     # start = time.time()
-        #     idx, i = x
-        #     file_path = ckpt_dir + f"{idx}.npz"
-        #     for _ in range(3):
-        #         try:
-        #             with open(file_path, "wb") as f:
-        #                 np.savez(f, *i)
-        #                 # cloudpickle.dump(i, f)
-        #                 # print(f"written {idx} in {time.time() - start:.06}s")
-        #             return
-        #         except:
-        #             print("save failed, trying again")
-
-        #     print("save failed 3 times, exiting")
-        #     raise Exception("save failed")
 
         prompt_df.to_csv(f"gs://{bucket}/{model_dir}/step_{ckpt_step}/prompt_completions_{now}.csv")
         wandb.finish()
