@@ -161,5 +161,5 @@ if __name__ == "__main__":
         from datetime import datetime
         now = datetime.now()
 
-        prompt_df.to_csv(f"gs://{bucket}/{model_dir}/step_{ckpt_step}/prompt_completions_{now}.csv")
+        prompt_df.to_csv(f"gs://{bucket}/{model_dir}/step_{ckpt_step}/prompt_completions_t{temp}_tp{top_p}_{now}.csv")
         wandb.finish()
