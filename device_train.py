@@ -144,7 +144,7 @@ def log_samples(network, tokenizer, prompts_df, wandb_table,
             context = prompts_df.iloc[i, 0]
             
             # if n_repeats > 1 then multiple generations will be run for each prompt
-            for _ in range(n_repeats):
+            for gen_round in range(n_repeats):
                 tokens = tokenizer.encode(context)
                 start = time.time()
                 provided_ctx = len(tokens)
@@ -169,7 +169,7 @@ def log_samples(network, tokenizer, prompts_df, wandb_table,
                 print(f"Prompt {i}: completion done in {completion_time}s \n")
 
                 wandb_table.add_data(
-                    i, f'{model_dir}_{step}', context, completion, 
+                    i, f'{model_dir}_{step}', gen_round, context, completion, 
                     top_p, temp, completion_time
                 )
 
@@ -375,7 +375,7 @@ if __name__ == "__main__":
 
             # create W&B Table to log generations to
             text_samples_table = wandb.Table(
-                columns=['id', 'model_checkpoint' , 'prompt', 'completion','top_p', 'temp', 'compleition_time'])
+                columns=['id', 'model_checkpoint' , 'gen_round', 'prompt', 'completion','top_p', 'temp', 'compleition_time'])
             
             # prepare lists to log generations
             model_ls = []
