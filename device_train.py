@@ -190,7 +190,7 @@ def log_samples(network, tokenizer, prompts_df, wandb_table,
         'compleition_time': compleition_time_ls
     })
     now = datetime.now()
-    output_df.to_csv(generations_path/f"text_generations_t{temp}_tp{top_p}_{now}.csv")
+    output_df.to_csv(generations_path/f"text_generations_{ckpt_step}_t{temp}_tp{top_p}_{now}.csv")
 
     return wandb_table
 
