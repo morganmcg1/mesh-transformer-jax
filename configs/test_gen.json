@@ -36,7 +36,7 @@
   "name": "test_gen_logging",
   "comment": "",
 
-  "prompts_filename": "prompts.csv",
+  "prompts_path": "prompts/prompts.csv",
   "n_repeats": 2,
   "top_p": 0.9,
   "temp": 0.75
