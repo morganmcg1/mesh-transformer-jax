@@ -360,6 +360,8 @@ if __name__ == "__main__":
         # Log text generations to wandb during validation. Prompt text(s)
         # are passed via a csv file
         if args.log_samples:
+            from mesh_transformer.sampling import nucleaus_sample
+            params["sampler"] = nucleaus_sample
             n_repeats = params.get('n_repeats',1)
             top_p = params.get("top_p", 0.9)
             temp = params.get("temp", 0.75)
