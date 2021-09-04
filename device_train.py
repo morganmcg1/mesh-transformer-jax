@@ -367,7 +367,7 @@ if __name__ == "__main__":
             # read prompts and create path to save generations to
             from pathlib import Path
             prompts_path = params['prompts_path']
-            prompts_df = pd.read_csv(f'"gs://{bucket}/{prompts_path}') 
+            prompts_df = pd.read_csv(f'gs://{bucket}/{prompts_path}') 
             generations_path = Path(f'{model_dir}/generated_samples').mkdir(parents=True, exist_ok=True) 
 
             # create W&B Table to log generations to
