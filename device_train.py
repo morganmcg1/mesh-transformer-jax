@@ -5,10 +5,10 @@ import time
 import jax
 import numpy as np
 import optax
+import pandas as pd
 
 import wandb
 from tqdm import tqdm
-
 
 from mesh_transformer import util
 from mesh_transformer.checkpoint import read_ckpt, write_ckpt
@@ -42,7 +42,7 @@ def parse_args():
     parser.add_argument("--config", type=str, default=None, help="Config file location")
     parser.add_argument("--tune-model-path", type=str, default=None, help="Base model to finetune")
     parser.add_argument("--fresh-opt", default=False, action="store_true", help="Use a newly initialized optimizer, ignoring any optimizer state saved in the base checkpoint")
-    parser.add_argument("--log-generation", default=False, action="store_true", help="Generate text samples and log to Weights & Biases at every validation")
+    parser.add_argument("--log-samples", default=False, action="store_true", help="Generate text samples and log to Weights & Biases at every validation, text prompts specificed in config file")
 
     args = parser.parse_args()
     return args
@@ -293,6 +293,20 @@ if __name__ == "__main__":
 
         project = params.get("wandb_project", "mesh-transformer-jax")
         wandb.init(project=project, name=params["name"], config=params)
+        
+        # Log text generations to wandb during validation. Prompt text(s)
+        # are passed via a csv file
+        if args.log_samples:
+            prompts_file = params['prompts_file']
+            prompts = pd.read_csv(f'prompts/{prompts_file}')
+            n_repeats = params['n_repeats']
+            top_p = params.get("top_p", 0.9)
+            temp = params.get("temp", 0.75)
+
+            prompt_table = wandb.Table(
+                columns=['model_checkpoint','title', 'selection' ,'prompt', 'completion','top_p', 'temp', 'compleition_time'])
+            prompt_df = pd.DataFrame()
+
 
         G_noise_avg = None
         S_noise_avg = None
