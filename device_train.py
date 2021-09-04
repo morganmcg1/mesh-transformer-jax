@@ -415,7 +415,7 @@ if __name__ == "__main__":
                 # If logging text generations during valiation to wandb
                 if args.log_samples:
                     table = log_samples(network, tokenizer, prompts_df, text_samples_table, 
-                        n_repeats, top_p, temp, global_val_batch, seq, model_dir, step)
+                        n_repeats, top_p, temp, global_val_batch, seq, model_dir, step, generations_path)
                     wandb_stats.update({'text_samples/text_samples_table': table})
 
             if step == total_steps:
