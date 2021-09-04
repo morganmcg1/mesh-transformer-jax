@@ -24,8 +24,8 @@
   "bucket": "prosecraft-storage",
   "model_dir": "mesh_jax_pile_6B_rotary",
 
-  "train_set": "prosecraft.train.index",
-  "val_set": {"pc_testing":"prosecraft.val.index"},
+  "train_set": "prosecraft_ft.train.index",
+  "val_set": {"pc_testing":"prosecraft_ft.val.index"},
   "eval_harness_tasks": [
   ],
   "val_batches": 20,
