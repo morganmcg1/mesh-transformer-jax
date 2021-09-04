@@ -192,7 +192,7 @@ def log_samples(network, tokenizer, prompts_df, wandb_table,
         'compleition_time': compleition_time_ls
     })
     now = datetime.now()
-    output_df.to_csv(generations_path/f"text_generations_{step}_t{temp}_tp{top_p}_{now}.csv")
+    output_df.to_csv(f"{generations_path}/text_generations_{step}_t{temp}_tp{top_p}_{now}.csv")
 
     return wandb_table
 
@@ -370,7 +370,8 @@ if __name__ == "__main__":
             from pathlib import Path
             prompts_path = params['prompts_path']
             prompts_df = pd.read_csv(f'gs://{bucket}/{prompts_path}') 
-            generations_path = Path(f'{model_dir}/generated_samples').mkdir(parents=True, exist_ok=True) 
+            generations_path = Path(f'{model_dir}/generated_samples')
+            generations_path.mkdir(parents=True, exist_ok=True) 
 
             # create W&B Table to log generations to
             text_samples_table = wandb.Table(
@@ -418,7 +419,7 @@ if __name__ == "__main__":
                 if args.log_samples:
                     table = log_samples(network, tokenizer, prompts_df, text_samples_table, 
                         n_repeats, top_p, temp, global_val_batch, seq, model_dir, step, generations_path)
-                    wandb_stats.update({'text_samples/text_samples_table': table})
+                    wandb_stats.update({'train_samples/text_samples_table': table})
 
             if step == total_steps:
                 print("training completed!")
