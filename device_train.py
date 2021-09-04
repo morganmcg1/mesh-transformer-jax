@@ -137,7 +137,7 @@ def eval_step(network, data):
 
 
 def log_samples(network, tokenizer, prompts_df, wandb_table, 
-    n_repeats, top_p, temp, total_batch, seq, model_dir, ckpt_step ,generations_path):
+    n_repeats, top_p, temp, total_batch, seq, model_dir, step ,generations_path):
     # for each prompt given
     for i in range(len(prompts_df)):
         if not prompts_df.iloc[i].isnull().values.any():
@@ -169,11 +169,11 @@ def log_samples(network, tokenizer, prompts_df, wandb_table,
                 print(f"Title {i}: completion done in {completion_time}s \n")
 
                 wandb_table.add_data(
-                    i, f'{model_dir}_{ckpt_step}', context, completion, 
+                    i, f'{model_dir}_{step}', context, completion, 
                     top_p, temp, completion_time
                 )
 
-                model_ls.append(f'{model_dir}_{ckpt_step}')
+                model_ls.append(f'{model_dir}_{step}')
                 prompt_idx_ls.append(i)
                 prompt_ls.append(context)
                 completion_ls.append(str(completion))
@@ -192,7 +192,7 @@ def log_samples(network, tokenizer, prompts_df, wandb_table,
         'compleition_time': compleition_time_ls
     })
     now = datetime.now()
-    output_df.to_csv(generations_path/f"text_generations_{ckpt_step}_t{temp}_tp{top_p}_{now}.csv")
+    output_df.to_csv(generations_path/f"text_generations_{step}_t{temp}_tp{top_p}_{now}.csv")
 
     return wandb_table
 
@@ -415,7 +415,7 @@ if __name__ == "__main__":
                 # If logging text generations during valiation to wandb
                 if args.log_samples:
                     table = log_samples(network, tokenizer, prompts_df, text_samples_table, 
-                        n_repeats, top_p, temp, global_val_batch, seq, model_dir, ckpt_step)
+                        n_repeats, top_p, temp, global_val_batch, seq, model_dir, step)
                     wandb_stats.update({'text_samples/text_samples_table': table})
 
             if step == total_steps:
