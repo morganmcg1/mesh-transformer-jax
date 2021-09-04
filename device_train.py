@@ -136,14 +136,15 @@ def eval_step(network, data):
     return np.array(loss).mean()
 
 
-def log_samples(network, tokenizer, prompts_df, text_samples_table, n_repeats, top_p, temp, total_batch):
+def log_samples(network, tokenizer, prompts_df, wandb_table, 
+    n_repeats, top_p, temp, total_batch, seq, model_dir, ckpt_step ,generations_path):
+    # for each prompt given
     for i in range(len(prompts_df)):
         if not prompts_df.iloc[i].isnull().values.any():
             context = prompts_df.iloc[i, 0]
             
             # if n_repeats > 1 then multiple generations will be run for each prompt
-            for rep in range(n_repeats):
-
+            for _ in range(n_repeats):
                 tokens = tokenizer.encode(context)
                 start = time.time()
                 provided_ctx = len(tokens)
@@ -154,8 +155,10 @@ def log_samples(network, tokenizer, prompts_df, text_samples_table, n_repeats, t
                 length = np.ones(total_batch, dtype=np.uint32) * len(tokens)
 
                 output = network.generate(batched_tokens, length, 512, 
-                    {"top_p": np.ones(total_batch) * top_p,
-                    "temp": np.ones(total_batch) * temp}
+                    {
+                    "top_p": np.ones(total_batch) * top_p,
+                    "temp": np.ones(total_batch) * temp
+                    }
                 )
 
                 for idx, o in enumerate(output[1][0][:, :, 0]):
@@ -165,7 +168,7 @@ def log_samples(network, tokenizer, prompts_df, text_samples_table, n_repeats, t
                 completion_time = f'{time.time() - start:06}'
                 print(f"Title {i}: completion done in {completion_time}s \n")
 
-                text_samples_table.add_data(
+                wandb_table.add_data(
                     f'{model_dir}_{ckpt_step}', context, completion, 
                     top_p, temp, completion_time
                 )
@@ -187,10 +190,9 @@ def log_samples(network, tokenizer, prompts_df, text_samples_table, n_repeats, t
         'compleition_time': compleition_time_ls
     })
     now = datetime.now()
-    output_df.to_csv(generations_path/f"prompt_generation_t{temp}_tp{top_p}_{now}.csv")
+    output_df.to_csv(generations_path/f"text_generations_t{temp}_tp{top_p}_{now}.csv")
 
-    return text_samples_table
-
+    return wandb_table
 
 
 if __name__ == "__main__":
@@ -356,7 +358,7 @@ if __name__ == "__main__":
         # Log text generations to wandb during validation. Prompt text(s)
         # are passed via a csv file
         if args.log_samples:
-            n_repeats = params['n_repeats']
+            n_repeats = params.get('n_repeats',1)
             top_p = params.get("top_p", 0.9)
             temp = params.get("temp", 0.75)
 
@@ -379,6 +381,7 @@ if __name__ == "__main__":
             compleition_time_ls = []
 
             tokenizer = GPT2TokenizerFast.from_pretrained('gpt2')
+
 
         G_noise_avg = None
         S_noise_avg = None
@@ -408,8 +411,9 @@ if __name__ == "__main__":
 
                 # If logging text generations during valiation to wandb
                 if args.log_samples:
-                   table = log_samples(network, tokenizer, prompts_df, text_samples_table, 
-                    n_repeats, top_p, temp, global_val_batch)
+                    table = log_samples(network, tokenizer, prompts_df, text_samples_table, 
+                        n_repeats, top_p, temp, global_val_batch, seq, model_dir, ckpt_step)
+                    wandb_stats.update({'text_samples/text_samples_table': table})
 
             if step == total_steps:
                 print("training completed!")
@@ -488,6 +492,4 @@ if __name__ == "__main__":
                 "tokens_processed": tokens_processed,
             }
             wandb_stats.update(noise_scale_stats)
-            if args.log_samples:
-                wandb_stats.update({'text_samples/text_samples_table': table})
             wandb.log(wandb_stats, step)
