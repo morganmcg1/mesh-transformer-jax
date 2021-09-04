@@ -12,17 +12,17 @@
     "per_replica_batch": 1,
     "gradient_accumulation_steps": 32,
   
-    "warmup_steps": 120,
-    "anneal_steps": 43075,
+    "warmup_steps": 75,
+    "anneal_steps": 43120,
     "lr": 1e-5,
-    "end_lr": 1e-7,
+    "end_lr": 1e-8,
     "weight_decay": 0.1,
     "total_steps": 43195,
   
     "tpu_size": 8,
   
     "bucket": "prosecraft-storage",
-    "model_dir": "prosecraft_ft2",
+    "model_dir": "prosecraft_resumed_ft2",
   
     "train_set": "prosecraft_ft.train.index",
     "val_set": {
