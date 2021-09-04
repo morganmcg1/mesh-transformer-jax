@@ -169,11 +169,12 @@ def log_samples(network, tokenizer, prompts_df, wandb_table,
                 print(f"Title {i}: completion done in {completion_time}s \n")
 
                 wandb_table.add_data(
-                    f'{model_dir}_{ckpt_step}', context, completion, 
+                    i, f'{model_dir}_{ckpt_step}', context, completion, 
                     top_p, temp, completion_time
                 )
 
                 model_ls.append(f'{model_dir}_{ckpt_step}')
+                prompt_idx_ls.append(i)
                 prompt_ls.append(context)
                 completion_ls.append(str(completion))
                 top_p_ls.append(top_p)
@@ -182,6 +183,7 @@ def log_samples(network, tokenizer, prompts_df, wandb_table,
     
     # save completiion to csv
     output_df = pd.DataFrame({
+        'id': v,
         'model': model_ls,
         'prompt': prompt_ls,
         'completion': completion_ls,
@@ -370,10 +372,11 @@ if __name__ == "__main__":
 
             # create W&B Table to log generations to
             text_samples_table = wandb.Table(
-                columns=['model_checkpoint' ,'prompt', 'completion','top_p', 'temp', 'compleition_time'])
+                columns=['id', 'model_checkpoint' , 'prompt', 'completion','top_p', 'temp', 'compleition_time'])
             
             # prepare lists to log generations
             model_ls = []
+            prompt_idx_ls = []
             prompt_ls = []
             completion_ls = []
             top_p_ls = []
