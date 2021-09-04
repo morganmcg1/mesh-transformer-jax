@@ -166,7 +166,7 @@ def log_samples(network, tokenizer, prompts_df, wandb_table,
                     print(f"sample {idx}: {completion}")
 
                 completion_time = f'{time.time() - start:06}'
-                print(f"Title {i}: completion done in {completion_time}s \n")
+                print(f"Prompt {i}: completion done in {completion_time}s \n")
 
                 wandb_table.add_data(
                     i, f'{model_dir}_{step}', context, completion, 
