@@ -418,7 +418,7 @@ if __name__ == "__main__":
                 if args.log_samples:
                     table = log_samples(network, tokenizer, prompts_df, text_samples_table, 
                         n_repeats, top_p, temp, global_val_batch, seq, model_dir, step, generations_path)
-                    wandb_stats.update({'train_samples/text_samples_table': table})
+                    wandb_stats.update({f'train_samples_tables/text_samples_step_{step}': table})
                 
                 wandb.log(wandb_stats)
 
