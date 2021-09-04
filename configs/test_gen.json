@@ -13,11 +13,11 @@
   "gradient_accumulation_steps": 32,
 
   "warmup_steps": 10,
-  "anneal_steps": 100,
+  "anneal_steps": 90,
   "lr": 2.5e-5,
   "end_lr": 2.5e-6,
   "weight_decay": 0.1,
-  "total_steps": 37303,
+  "total_steps": 100,
 
   "tpu_size": 8,
 
@@ -29,7 +29,7 @@
   "eval_harness_tasks": [
   ],
   "val_batches": 20,
-  "val_every": 10,
+  "val_every": 25,
   "ckpt_every": 1000,
   "keep_every": 3000,
 
