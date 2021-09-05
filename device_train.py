@@ -236,6 +236,9 @@ if __name__ == "__main__":
     noise_scale_alpha = params.get("noise_scale_alpha", 0.01)
 
     scheduler = util.gpt3_schedule(warmup_steps, anneal_steps, lr, end_lr)
+    
+    from optax import linear_onecycle_schedule
+    scheduler = linear_onecycle_schedule(total_steps, lr, 0.0046, 1.0, 100.0, 10000)
 
     opt = optax.chain(
         optax.scale(1 / gradient_accumulation_steps),
